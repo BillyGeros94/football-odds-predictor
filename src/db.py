@@ -1,0 +1,33 @@
+import os
+from pathlib import Path
+
+import psycopg
+from dotenv import load_dotenv
+
+load_dotenv()
+url = os.environ["DATABASE_URL"]
+
+def get_connection():
+    return psycopg.connect(url)
+
+def create_tables():   
+    sql_text = Path("sql/schema.sql").read_text()
+    with get_connection() as conn:
+        conn.execute(sql_text)
+
+
+if __name__ == "__main__":
+
+    create_tables()
+
+    query = """
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = 'public';
+            """
+
+    with get_connection() as conn:
+        rows = conn.execute(query).fetchall()
+
+    for row in rows:
+        print(row[0])
