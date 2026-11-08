@@ -37,7 +37,7 @@ def save_predictions(conn, df):
         return
     
     df = df.copy()
-    df["model"] = "logistic"
+    df["model"] = "average"
 
     clean = df.astype(object).where(df.notna(), None)
     columns = ["Date", "home_team_id", "away_team_id", "model",
@@ -57,12 +57,16 @@ def save_predictions(conn, df):
 
 
 if __name__ == "__main__":
-    model, cols = make_models()["logistic"]
+    # The main model: average of logistic and boosting, trained on every finished match
     train = load_features()
-    model.fit(train[cols], train["result"])
-
     fixtures = build_features(load_fixtures("data/fixtures/fixtures.csv"))
-    probs = model.predict_proba(fixtures[cols])
+
+    all_probs = []
+    for name in ["logistic", "boosting"]:
+        model, cols = make_models()[name]
+        model.fit(train[cols], train["result"])
+        all_probs.append(model.predict_proba(fixtures[cols]))
+    probs = sum(all_probs) / len(all_probs)
 
     fixtures["prob_away"] = probs[:, 0]
     fixtures["prob_draw"] = probs[:, 1]
