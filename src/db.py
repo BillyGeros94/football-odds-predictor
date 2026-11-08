@@ -11,7 +11,7 @@ def get_connection():
     return psycopg.connect(url)
 
 def create_tables():   
-    for name in ["schema.sql", "features.sql"]:
+    for name in ["schema.sql", "features.sql", "team_current.sql"]:
         sql_text = Path(f"sql/{name}").read_text()
         with get_connection() as conn:
             conn.execute(sql_text)

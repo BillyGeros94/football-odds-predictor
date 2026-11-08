@@ -37,3 +37,16 @@ CREATE TABLE IF NOT EXISTS elo_ratings (
     home_after  NUMERIC(7,2) NOT NULL,
     away_after  NUMERIC(7,2) NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS predictions (
+    prediction_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    match_date    DATE NOT NULL,
+    home_team_id  INTEGER NOT NULL REFERENCES teams(team_id),
+    away_team_id  INTEGER NOT NULL REFERENCES teams(team_id),
+    model         TEXT NOT NULL,
+    prob_home     NUMERIC(5,4) NOT NULL,
+    prob_draw     NUMERIC(5,4) NOT NULL,
+    prob_away     NUMERIC(5,4) NOT NULL,
+    UNIQUE (match_date, home_team_id, away_team_id, model)
+);
