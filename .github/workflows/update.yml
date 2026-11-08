@@ -60,3 +60,7 @@ jobs:
             git commit -m "Predictions made $(date -u +'%Y-%m-%d %H:%M') UTC"
             git push
           fi
+
+      # Last, so a scoring problem can never stop predictions being published
+      - name: Score live predictions
+        run: python -m src.live_score
