@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-
+import pandas as pd
 import psycopg
 from dotenv import load_dotenv
 
@@ -15,6 +15,11 @@ def create_tables():
     with get_connection() as conn:
         conn.execute(sql_text)
 
+def read_sql(query):
+    with get_connection() as conn:
+        rows = conn.execute(query)
+        columns = [c.name for c in rows.description]
+        return pd.DataFrame(rows.fetchall(), columns=columns)
 
 if __name__ == "__main__":
 
