@@ -29,3 +29,11 @@ CREATE TABLE IF NOT EXISTS odds (
     close_draw  NUMERIC(6,2),
     close_away  NUMERIC(6,2) 
 );
+
+CREATE TABLE IF NOT EXISTS elo_ratings (
+    match_id    INTEGER PRIMARY KEY REFERENCES matches(match_id),
+    home_before NUMERIC(7,2) NOT NULL,
+    away_before NUMERIC(7,2) NOT NULL,
+    home_after  NUMERIC(7,2) NOT NULL,
+    away_after  NUMERIC(7,2) NOT NULL
+);
