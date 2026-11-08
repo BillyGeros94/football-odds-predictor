@@ -3,7 +3,8 @@ from src.db import read_sql
 from src.features import FEATURES, load_features
 from src.models import make_models
 from src.db import get_connection
-from datetime import date
+from datetime import date, timezone
+from pathlib import Path
 
 
 def load_fixtures(path):
@@ -63,6 +64,39 @@ def save_predictions(conn, df):
         cur.executemany(sql, rows)
 
 
+def export_new_predictions(conn, folder="predictions"):
+    # Write the predictions saved in this run to a CSV that the workflow commits,
+    # so the public git history proves when each prediction was made.
+    # Inside one transaction now() never changes, so created_at = now() picks
+    # exactly the rows inserted by this run (not ones kept from earlier runs).
+    query = """
+        SELECT p.match_date, h.name AS home_team, a.name AS away_team, p.model,
+               p.prob_home, p.prob_draw, p.prob_away, p.created_at
+        FROM predictions p
+        JOIN teams h ON h.team_id = p.home_team_id
+        JOIN teams a ON a.team_id = p.away_team_id
+        WHERE p.created_at = now()
+        ORDER BY p.match_date, h.name
+    """
+    result = conn.execute(query)
+    new = pd.DataFrame(result.fetchall(), columns=[c.name for c in result.description])
+    if new.empty:
+        print("No new predictions to export")
+        return
+
+    for outcome in ["home", "draw", "away"]:
+        new[f"prob_{outcome}"] = new[f"prob_{outcome}"].astype(float)
+        new[f"odds_{outcome}"] = (1 / new[f"prob_{outcome}"]).round(2)
+
+    made = new["created_at"].iloc[0].astimezone(timezone.utc)
+    new["created_at"] = made.strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    Path(folder).mkdir(exist_ok=True)
+    path = Path(folder) / f"{made:%Y-%m-%d_%H%M}.csv"
+    new.to_csv(path, index=False)
+    print(f"Exported {len(new)} predictions to {path}")
+
+
 if __name__ == "__main__":
     # The main model: average of logistic and boosting, trained on every finished match
     train = load_features()
@@ -89,4 +123,5 @@ if __name__ == "__main__":
     print(fixtures[["Date", "HomeTeam", "AwayTeam", "prob_home", "prob_draw", "prob_away", "odds_home", "odds_draw", "odds_away"]].round(2))
     with get_connection() as conn:
         save_predictions(conn, fixtures)
+        export_new_predictions(conn)
         print(conn.execute("SELECT COUNT(*) FROM predictions").fetchone()[0])
