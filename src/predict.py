@@ -19,6 +19,13 @@ def build_features(fixtures):
     fixtures["home_team_id"] = fixtures["HomeTeam"].map(team_ids)
     fixtures["away_team_id"] = fixtures["AwayTeam"].map(team_ids)
 
+    # A team name the database has never seen (for example a newly promoted club
+    # before its first match is loaded) would silently drop the fixture, so say so
+    unknown = set(fixtures.loc[fixtures["home_team_id"].isna(), "HomeTeam"]) | \
+              set(fixtures.loc[fixtures["away_team_id"].isna(), "AwayTeam"])
+    if unknown:
+        print("Skipping fixtures with unknown teams:", ", ".join(sorted(unknown)))
+
     df = (fixtures
           .merge(current.add_prefix("home_"), on="home_team_id")
           .merge(current.add_prefix("away_"), on="away_team_id"))
@@ -60,6 +67,9 @@ if __name__ == "__main__":
     # The main model: average of logistic and boosting, trained on every finished match
     train = load_features()
     fixtures = build_features(load_fixtures("data/fixtures/fixtures.csv"))
+    if fixtures.empty:
+        print("No Premier League or Championship fixtures in the file")
+        raise SystemExit(0)
 
     all_probs = []
     for name in ["logistic", "boosting"]:

@@ -1,0 +1,42 @@
+name: Update data and predictions
+
+on:
+  schedule:
+    # Monday: weekend results in, midweek fixtures out
+    # Thursday: midweek results in, weekend fixtures out (Friday night games included)
+    # 06:00 UTC is 08:00 or 09:00 in Greece
+    - cron: "0 6 * * 1,4"
+  workflow_dispatch:   # adds a "Run workflow" button for manual runs
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install packages
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: python -m pytest
+
+      - name: Download current season and fixtures
+        run: python -m src.download
+
+      - name: Load new matches
+        run: python -m src.ingest
+
+      - name: Recalculate Elo
+        run: python -m src.elo
+
+      - name: Predict upcoming fixtures
+        run: python -m src.predict
