@@ -1,7 +1,11 @@
 """Tune the gradient boosting model on the tuning seasons (2019/20–2021/22).
 
 Boosting overfits easily on a few thousand matches, so the grid focuses on
-slower learning, shallower trees and bigger leaves.
+slower learning, shallower trees and bigger leaves. Every combination of the
+GRID values is tried on both feature sets (64 runs, a few minutes).
+
+Run:
+    python -m src.tune_boosting
 """
 import itertools
 
@@ -24,6 +28,7 @@ GRID = {
 
 
 def walk_forward_loss(df, cols, params):
+    """Average walk-forward log loss on the tuning seasons for one combination of settings."""
     losses = []
     for season in TUNE_SEASONS:
         train = df[df["season"] < season]

@@ -1,7 +1,15 @@
 """Check calibration: when a model says 60%, does it happen about 60% of the time?
 
-Uses the walk-forward predictions on the tuning seasons, plus the market and a
-simple average of logistic and boosting. Saves a reliability chart to results/.
+Uses the walk-forward predictions on the tuning seasons, plus the market.
+Predictions are grouped into 10% bins, and each bin's average prediction is
+compared with how often the outcome actually happened. Saves a reliability
+chart to results/.
+
+Result: all models are within about 2 percentage points of the actual rates,
+close to the market, so no separate calibration step is needed.
+
+Run:
+    python -m src.calibration
 """
 from pathlib import Path
 
@@ -16,11 +24,11 @@ from src.evaluate import market_probs, score
 from src.features import load_features
 
 OUTCOMES = {"home": "H", "draw": "D", "away": "A"}
-BINS = np.arange(0, 1.05, 0.1)
+BINS = np.arange(0, 1.05, 0.1)   # 0–10%, 10–20%, ... 90–100%
 
 
 def reliability(preds, outcome):
-    # Group predictions into 10% bins, then compare predicted and actual rates
+    """For one outcome, compare the average predicted probability with the actual rate in each bin."""
     col, letter = f"prob_{outcome}", OUTCOMES[outcome]
     df = preds[[col]].copy()
     df["happened"] = (preds["result"] == letter).astype(float)
@@ -31,7 +39,7 @@ def reliability(preds, outcome):
 
 
 def reliability_chart(preds, title, path):
-    # One panel per outcome: predicted probability against how often it happened
+    """Save a chart with one panel per outcome: the closer to the diagonal, the better."""
     fig, axes = plt.subplots(1, 3, figsize=(13, 4.2), sharey=True)
     for ax, outcome in zip(axes, OUTCOMES):
         ax.plot([0, 1], [0, 1], color="grey", linestyle="--", linewidth=1, label="perfect")
@@ -52,7 +60,7 @@ def reliability_chart(preds, title, path):
 
 
 def calibration_error(preds):
-    # Average gap between predicted and actual rates, weighted by matches
+    """Average gap between predicted and actual rates, weighted by the number of matches in each bin."""
     gaps = []
     for outcome in OUTCOMES:
         t = reliability(preds, outcome)
@@ -77,6 +85,3 @@ if __name__ == "__main__":
     reliability_chart(preds, "Calibration on 2019/20–2021/22 (walk-forward)",
                       "results/calibration_tuning.png")
     print("\nSaved results/calibration_tuning.png")
-
-# Result: all models are within about 2 percentage points of the actual rates,
-# close to the market (0.018). A separate calibration step is not needed.

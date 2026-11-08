@@ -2,6 +2,12 @@
 
 Each feature set is scored with the same walk-forward logistic regression
 on the tuning seasons. Lower log loss is better.
+
+Result: shots on target help (1.0309 → 1.0293), recent goals make it worse,
+so the models use Elo + shots on target (see models.py).
+
+Run:
+    python -m src.feature_test
 """
 import pandas as pd
 from sklearn.impute import SimpleImputer
@@ -22,6 +28,7 @@ SETS = {
 
 
 def make_model():
+    """Logistic regression with an imputer and scaler, so all feature sets get the same treatment."""
     return make_pipeline(
         SimpleImputer(strategy="median"),   # fills each team's empty first match
         StandardScaler(),                   # puts all features on the same scale
@@ -30,6 +37,7 @@ def make_model():
 
 
 def walk_forward_loss(df, cols):
+    """Return the log loss for each tuning season using the columns `cols`."""
     losses = []
     for season in TUNE_SEASONS:
         train = df[df["season"] < season]

@@ -1,5 +1,7 @@
+"""Tests for the Elo formulas in src/elo.py. Run all tests with: python -m pytest"""
 import pytest
-from src.elo import expected_home, update, margin_multiplier
+
+from src.elo import expected_home, margin_multiplier, update
 
 def test_expected_home():
     assert expected_home(1700, 1500) == pytest.approx(0.817, abs=0.001)

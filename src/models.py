@@ -1,3 +1,13 @@
+"""The models, each paired with the features it uses.
+
+- baseline: always predicts the historical home/draw/away rates (the bar to beat)
+- logistic: logistic regression on Elo and shots on target
+- boosting: gradient boosting on the same features
+The main model is the average of logistic and boosting (see backtest.py).
+
+Run for a quick check on one season:
+    python -m src.models
+"""
 from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.impute import SimpleImputer
@@ -18,6 +28,10 @@ BOOSTING_PARAMS = dict(learning_rate=0.02, max_iter=100, max_depth=2,
 
 
 def make_logistic():
+    """Logistic regression with the two preparation steps it needs, chained in a pipeline.
+
+    The pipeline learns the median and scaling from the training data only.
+    """
     return make_pipeline(
         SimpleImputer(strategy="median"),   # fills each team's empty first match
         StandardScaler(),                   # puts all features on the same scale
@@ -26,12 +40,16 @@ def make_logistic():
 
 
 def make_boosting(**params):
+    """Gradient boosting with the tuned settings. Any params given override them."""
+    # Boosting handles empty values itself, so it needs no imputer.
+    # random_state makes runs repeatable
     return HistGradientBoostingClassifier(**{**BOOSTING_PARAMS, **params}, random_state=0)
 
 
 def make_models():
-    # Each model → (model, the features it uses)
+    """Return fresh, untrained models as {name: (model, feature columns)}."""
     return {
+        # The baseline ignores its input; elo_diff is passed only because fit() needs a column
         "baseline": (DummyClassifier(strategy="prior"), ["elo_diff"]),
         "logistic": (make_logistic(), LOGISTIC_FEATURES),
         "boosting": (make_boosting(), BOOSTING_FEATURES),
@@ -47,6 +65,7 @@ if __name__ == "__main__":
 
     for name, (model, cols) in make_models().items():
         model.fit(train[cols], train["result"])
+        # Columns come in model.classes_ order: A, D, H
         probs = model.predict_proba(test[cols])
         loss = log_loss(test["result"], probs, labels=model.classes_)
         print(name, round(loss, 4))

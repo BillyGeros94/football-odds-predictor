@@ -1,3 +1,4 @@
+"""Tests for src/download.py. They never contact the website."""
 from datetime import date
 
 from src.download import looks_like_csv, season_code

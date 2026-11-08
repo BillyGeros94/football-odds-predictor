@@ -1,15 +1,27 @@
+"""Tune the Elo settings on the tuning seasons (2019/20–2021/22).
+
+For each combination, Elo is recalculated in memory (the database is not
+touched), then a walk-forward logistic regression on elo_diff is scored.
+The combination with the lowest log loss wins.
+
+Run:
+    python -m src.tune
+"""
+import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import log_loss
-import pandas as pd
 
+from src.backtest import TUNE_SEASONS
 from src.db import read_sql
 from src.elo import run_elo
 from src.features import load_features
-from src.backtest import TUNE_SEASONS
+
 
 def score_elo(matches, features, k, home_adv, margin=False, regress=0.0):
+    """Average walk-forward log loss of a logistic regression on Elo calculated with these settings."""
     elo = run_elo(matches, k=k, home_adv=home_adv, margin=margin, regress=regress)
 
+    # Swap the stored Elo columns for the newly calculated ratings
     df = features.drop(columns=["home_elo", "away_elo", "elo_diff"]).merge(elo, on="match_id")
     df["elo_diff"] = df["home_before"] - df["away_before"]
 
@@ -24,6 +36,7 @@ def score_elo(matches, features, k, home_adv, margin=False, regress=0.0):
         loss = log_loss(test["result"], pred, labels=model.classes_)
         losses.append(loss)
     return sum(losses) / len(losses)
+
 
 if __name__ == "__main__":
     matches = read_sql("""
