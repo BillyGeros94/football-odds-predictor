@@ -7,14 +7,14 @@ from src.elo import run_elo
 from src.features import load_features
 from src.backtest import TUNE_SEASONS
 
-def score_elo(matches, features, k, home_adv):
-    elo = run_elo(matches, k=k, home_adv=home_adv)
+def score_elo(matches, features, k, home_adv, margin=False, regress=0.0):
+    elo = run_elo(matches, k=k, home_adv=home_adv, margin=margin, regress=regress)
 
     df = features.drop(columns=["home_elo", "away_elo", "elo_diff"]).merge(elo, on="match_id")
     df["elo_diff"] = df["home_before"] - df["away_before"]
 
     losses = []
-    for  season in TUNE_SEASONS:
+    for season in TUNE_SEASONS:
         train = df[df["season"] < season]
         test = df[df["season"] == season]
         model = LogisticRegression(max_iter=1000)
@@ -27,17 +27,25 @@ def score_elo(matches, features, k, home_adv):
 
 if __name__ == "__main__":
     matches = read_sql("""
-        SELECT match_id, match_date, league, home_team_id, away_team_id, result
+        SELECT match_id, match_date, league, season, home_team_id, away_team_id,
+               home_goals, away_goals, result
         FROM matches ORDER BY match_date, match_id
     """)
     features = load_features()
 
+    # Round 1 (done): K and home advantage. K = 20 was best; home advantage made no real difference.
+    # Round 2: margin of victory and pulling ratings back between seasons, with home advantage fixed at 60.
+    # Best: margin on, regress 0.4, K about 4–6 (1.0309). Chosen: K = 5, now the defaults in elo.py.
     results = []
-    for k in [10, 15, 20, 25, 30, 40]:
-        for home_adv in [0, 30, 60, 90]:
-            loss = score_elo(matches, features, k, home_adv)
-            results.append((k, home_adv, loss))
+    for margin in [False, True]:
+        for regress in [0.0, 0.2, 0.3, 0.4, 0.5, 0.6]:
+            for k in [5, 7.5, 10, 15, 20]:
+                loss = score_elo(matches, features, k, 60, margin, regress)
+                results.append((margin, regress, k, loss))
 
-    df_results = pd.DataFrame(results, columns=["k", "home_adv", "loss"])
+    df_results = pd.DataFrame(results, columns=["margin", "regress", "k", "loss"])
     df_results = df_results.sort_values("loss")
-    print(df_results.head(10))
+    print(df_results.head(12).to_string(index=False))
+    print()
+    print("Best per option:")
+    print(df_results.groupby(["margin", "regress"])["loss"].min().unstack().round(4))
