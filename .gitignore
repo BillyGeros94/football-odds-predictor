@@ -2,3 +2,4 @@
 .env
 data/raw/
 __pycache__/
+data/fixtures/
