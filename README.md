@@ -101,7 +101,9 @@ Each step was measured on the tuning seasons (log loss, lower is better):
 
 - **The live comparison favours the market.** A prediction can be made up to four days
   before kick-off, while closing odds include late team news. The pre-match odds are the fairer comparison.
-- **Matches on the day of a run are not predicted**, so every saved prediction is made before kick-off.
+- **Predictions are saved only up to 2 hours before kick-off** (UK kick-off times converted
+  to UTC), so every saved prediction is made well before the match. Games kicking off
+  sooner than that when a run happens are not predicted.
 - **Rescheduled matches** are matched on season and both teams, so they still find their
   result. If a match was predicted twice, the prediction made for the official date counts,
   and the replaced one is reported, not hidden.

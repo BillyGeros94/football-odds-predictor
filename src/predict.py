@@ -4,10 +4,11 @@ Steps:
 1. Read data/fixtures/fixtures.csv and keep Premier League and Championship games
 2. Look up each team's current form in the team_current view
 3. Train logistic and boosting on every finished match and average their probabilities
-4. Save predictions for matches after today, stamped with the time (never overwritten)
+4. Save predictions for matches more than 2 hours before kick-off, stamped with the
+   time (never overwritten)
 5. Export this run's new predictions to predictions/, which the workflow commits
 
-Run the day before the matches:
+Run at least 2 hours before the matches:
     python -m src.predict
 """
 from datetime import date, timezone
@@ -26,7 +27,39 @@ def load_fixtures(path):
     df = pd.read_csv(path, encoding="utf-8-sig")
     df = df[df["Div"].isin(["E0", "E1"])].copy()
     df["Date"] = pd.to_datetime(df["Date"], dayfirst=True, format="mixed").dt.date
-    return df[["Div", "Date", "HomeTeam", "AwayTeam"]]
+    return df[["Div", "Date", "Time", "HomeTeam", "AwayTeam"]]
+
+
+UK = "Europe/London"          # football-data gives kick-off times in UK time (GMT or BST)
+MIN_LEAD = pd.Timedelta(hours=2)
+
+
+def kickoff_utc(df):
+    """Each match's kick-off in UTC, or NaT if the time is missing or unclear.
+
+    UK clocks change twice a year, so 15:00 is 15:00 UTC in winter but 14:00 UTC in
+    summer. At the autumn change one hour happens twice; those times give NaT, and
+    such a match falls back to the safe date-only rule in can_still_predict.
+    """
+    if "Time" not in df:
+        return pd.Series(pd.NaT, index=df.index, dtype="datetime64[ns, UTC]")
+    local = pd.to_datetime(df["Date"].astype(str) + " " + df["Time"].astype(str),
+                           format="%Y-%m-%d %H:%M", errors="coerce")
+    return (local.dt.tz_localize(UK, ambiguous="NaT", nonexistent="NaT")
+                 .dt.tz_convert("UTC"))
+
+
+def can_still_predict(df, now=None):
+    """True for matches that kick off more than MIN_LEAD from now.
+
+    Without a usable kick-off time, only matches on a later day count, the strict
+    rule used before kick-off times were read.
+    """
+    now = now or pd.Timestamp.now(tz="UTC")
+    kickoff = kickoff_utc(df)
+    timed = kickoff.notna() & (kickoff > now + MIN_LEAD)
+    untimed = kickoff.isna() & (pd.to_datetime(df["Date"]).dt.date > now.date())
+    return timed | untimed
 
 
 def build_features(fixtures):
@@ -57,10 +90,12 @@ def build_features(fixtures):
     return df
 
 
-def save_predictions(conn, df):
-    """Save predictions for matches after today. A prediction already saved is never overwritten."""
-    # Strictly after today, so every saved prediction was made before kick-off
-    df = df[df["Date"] > date.today()]
+def save_predictions(conn, df, now=None):
+    """Save predictions for matches more than 2 hours before kick-off, including later today.
+
+    A prediction already saved is never overwritten. `now` can be set in tests.
+    """
+    df = df[can_still_predict(df, now)]
 
     if df.empty:
         print("No upcoming matches to save")

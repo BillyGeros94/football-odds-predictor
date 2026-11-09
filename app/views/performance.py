@@ -116,7 +116,8 @@ with st.expander("Limitations"):
     st.markdown(
         "- The live comparison favours the market: a prediction can be made up to four days before "
         "kick-off, while closing odds include late team news. Pre-match odds are the fairer comparison.\n"
-        "- Matches on the day of a run are not predicted.\n"
+        "- Predictions are saved only up to 2 hours before kick-off; games kicking off sooner "
+        "than that when a run happens are not predicted.\n"
         "- No line-ups, injuries or xG: the model only knows results, shots on target and ratings.\n"
         "- Data from [football-data.co.uk](https://www.football-data.co.uk), not included in the "
         "repository. A personal, non-commercial project."
