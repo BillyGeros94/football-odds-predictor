@@ -34,13 +34,20 @@ def add_average(preds):
     return pd.concat([preds, avg], ignore_index=True)
 
 
+def season_split(df, season):
+    """Train on every season before `season`, test on `season` only.
+
+    Season codes sort correctly as text: "1920" < "2021".
+    """
+    return df[df["season"] < season], df[df["season"] == season]
+
+
 def walk_forward(df, seasons):
     """Return every model's predictions for every match in `seasons`, one row per match per model."""
     all_preds = []
 
     for season in seasons:
-        # Season codes sort correctly as text: "1920" < "2021"
-        train, test = df[df["season"] < season], df[df["season"] == season]
+        train, test = season_split(df, season)
 
         # make_models() inside the loop gives untrained models for every season
         for name, (model, cols) in make_models().items():
