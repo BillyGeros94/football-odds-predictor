@@ -38,6 +38,11 @@ jobs:
       - name: Install packages
         run: pip install -r requirements.txt
 
+      # Tests that need no database run first, so a broken change to the code is
+      # caught before anything touches the stored data
+      - name: Run code tests
+        run: python -m pytest tests/test_backtest.py tests/test_evaluate.py tests/test_download.py tests/test_elo.py
+
       - name: Download current season and fixtures
         run: python -m src.download
 
@@ -47,11 +52,12 @@ jobs:
       - name: Recalculate Elo
         run: python -m src.elo
 
-      # After loading and rating, before predicting: the leakage tests compare the feature
-      # view with every stored match, so they need Elo rebuilt for the newest matches.
-      # Running them earlier would let one half-finished run block every later run;
-      # here a failure still stops bad predictions, and the next run can repair itself.
-      - name: Run tests
+      # After loading and rating, before predicting: the database tests (leakage, saving,
+      # loading) compare the feature view with every stored match, so they need Elo rebuilt
+      # for the newest matches. Running them earlier would let one half-finished run block
+      # every later run; here a failure still stops bad predictions, and the next run can
+      # repair itself. This step runs the whole suite, so new test files are never missed.
+      - name: Run all tests
         run: python -m pytest
 
       - name: Predict upcoming fixtures

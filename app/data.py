@@ -55,7 +55,11 @@ LATEST_LEAGUE = """
 
 @st.cache_data(ttl=HOUR)
 def freshness():
-    """When the workflow last ran (every run saves a simulation) and the latest result loaded."""
+    """The latest season simulation and the latest result loaded.
+
+    Simulations are skipped when no new results arrive, so the first date is when the
+    season chances last changed, not when the workflow last ran.
+    """
     latest_result = query("SELECT MAX(match_date) AS d FROM matches").d[0]
     try:
         last_run = query("SELECT MAX(run_at) AS t FROM season_simulations").t[0]

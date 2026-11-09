@@ -20,10 +20,11 @@ import data  # noqa: E402  (after set_page_config)
 with st.sidebar:
     st.caption("Premier League and Championship win, draw and loss probabilities, "
                "updated every Monday and Thursday.")
-    last_run, latest_result = data.freshness()
-    if last_run is not None:
-        st.caption(f"Last update: {last_run:%a %d %b %Y, %H:%M} UTC")
+    last_simulation, latest_result = data.freshness()
     st.caption(f"Results included up to: {latest_result:%a %d %b %Y}")
+    if last_simulation is not None:
+        # Simulations only run when new results arrive, so this is not the last workflow run
+        st.caption(f"Season simulation: {last_simulation:%a %d %b %Y}")
     st.caption("[Code and method on GitHub](https://github.com/BillyGeros94/football-odds-predictor)")
 
 st.navigation(pages).run()
