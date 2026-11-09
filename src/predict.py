@@ -87,12 +87,44 @@ def save_predictions(conn, df):
         cur.executemany(sql, rows)
 
 
-def export_new_predictions(conn, folder="predictions"):
+def latest_results(conn):
+    """The date of the most recent result loaded for each league, e.g. {"E0": date, "E1": date}."""
+    rows = conn.execute("SELECT league, MAX(match_date) FROM matches GROUP BY league").fetchall()
+    return dict(rows)
+
+
+def warn_if_stale(conn, fixtures):
+    """Warn when matches already played have no result loaded yet.
+
+    The fixtures file often still lists the last few days' games. If any of them are
+    missing from `matches`, the site has not added those results yet, so ratings and
+    form are behind. Predictions are still made; the warning makes it visible.
+    Returns the number of missing results.
+    """
+    played = fixtures[fixtures["Date"] < date.today()]
+    missing = 0
+    for match in played.itertuples():
+        found = conn.execute(
+            "SELECT 1 FROM matches WHERE match_date = %s AND home_team_id = %s AND away_team_id = %s",
+            (match.Date, int(match.home_team_id), int(match.away_team_id))).fetchone()
+        missing += found is None
+    if missing:
+        # "::warning::" makes GitHub Actions show it as a yellow annotation on the run
+        print(f"::warning::{missing} match(es) already played have no result loaded yet, "
+              "so ratings and form are behind for these predictions.")
+    return missing
+
+
+def export_new_predictions(conn, folder="predictions", leagues=None, results_up_to=None):
     """Write the predictions saved in this run to a CSV that the workflow commits.
 
     The public git history then proves when each prediction was made. Inside one
     transaction now() never changes, so created_at = now() picks exactly the rows
     inserted by this run (not ones kept from earlier runs).
+
+    leagues maps each home team to its league; results_up_to maps each league to its
+    latest loaded result. Together they record what the ratings knew, so a prediction
+    made with a round of results missing is visible in the public file.
     """
     query = """
         SELECT p.match_date, h.name AS home_team, a.name AS away_team, p.model,
@@ -116,6 +148,10 @@ def export_new_predictions(conn, folder="predictions"):
 
     made = new["created_at"].iloc[0].astimezone(timezone.utc)
     new["created_at"] = made.strftime("%Y-%m-%d %H:%M:%S UTC")
+    if leagues and results_up_to:
+        # Each match gets its league and the latest result date of that league
+        new.insert(1, "league", new["home_team"].map(leagues))
+        new["results_up_to"] = new["league"].map(results_up_to)
 
     Path(folder).mkdir(exist_ok=True)
     path = Path(folder) / f"{made:%Y-%m-%d_%H%M}.csv"
@@ -152,6 +188,11 @@ if __name__ == "__main__":
 
     # Saving and exporting share one transaction, which export_new_predictions relies on
     with get_connection() as conn:
+        results_up_to = latest_results(conn)
+        print("Results loaded up to:", ", ".join(f"{k} {v}" for k, v in sorted(results_up_to.items())))
+        warn_if_stale(conn, fixtures)
+
         save_predictions(conn, fixtures)
-        export_new_predictions(conn)
+        export_new_predictions(conn, leagues=dict(zip(fixtures["HomeTeam"], fixtures["Div"])),
+                               results_up_to=results_up_to)
         print(conn.execute("SELECT COUNT(*) FROM predictions").fetchone()[0])

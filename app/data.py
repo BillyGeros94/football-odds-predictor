@@ -50,6 +50,19 @@ LATEST_LEAGUE = """
 """
 
 
+# ---------- Freshness ----------
+
+@st.cache_data(ttl=HOUR)
+def freshness():
+    """When the workflow last ran (every run saves a simulation) and the latest result loaded."""
+    latest_result = query("SELECT MAX(match_date) AS d FROM matches").d[0]
+    try:
+        last_run = query("SELECT MAX(run_at) AS t FROM season_simulations").t[0]
+    except Exception:   # the table does not exist before the first simulation
+        last_run = None
+    return last_run, latest_result
+
+
 # ---------- Upcoming matches ----------
 
 @st.cache_data(ttl=HOUR)

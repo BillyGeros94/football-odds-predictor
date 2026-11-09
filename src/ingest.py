@@ -1,8 +1,9 @@
 """Load the football-data CSV files from data/raw/ into the database.
 
 Each file is one league and season, named like E0_2526.csv (E0 = Premier
-League, E1 = Championship). Teams, matches and odds are inserted with
-ON CONFLICT DO NOTHING, so rerunning only adds rows that are new.
+League, E1 = Championship). Rerunning is safe: new matches are added, and a match
+already stored is updated with the file's values, so a score or statistic the site
+corrects later is picked up (Elo is recalculated from scratch every run anyway).
 
 Run after downloading new files:
     python -m src.ingest
@@ -60,7 +61,7 @@ def load_teams(conn, df):
 
 
 def load_matches(conn, df, team_ids):
-    """Insert the season's matches. Matches already in the database are skipped."""
+    """Insert the season's matches. A match already stored is updated, so corrections come through."""
     df = df.copy()
     df["Date"] = df["Date"].dt.date
     df["home_id"] = df["HomeTeam"].map(team_ids)
@@ -81,7 +82,14 @@ def load_matches(conn, df, team_ids):
             home_shots_on_target, away_shots_on_target, result
         )
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (match_date, home_team_id, away_team_id) DO NOTHING
+        ON CONFLICT (match_date, home_team_id, away_team_id) DO UPDATE SET
+            home_goals = EXCLUDED.home_goals,
+            away_goals = EXCLUDED.away_goals,
+            home_shots = EXCLUDED.home_shots,
+            away_shots = EXCLUDED.away_shots,
+            home_shots_on_target = EXCLUDED.home_shots_on_target,
+            away_shots_on_target = EXCLUDED.away_shots_on_target,
+            result = EXCLUDED.result
     """
 
     with conn.cursor() as cur:
@@ -89,7 +97,7 @@ def load_matches(conn, df, team_ids):
 
 
 def load_odds(conn, df, team_ids):
-    """Insert the season's odds. Only seasons from 2019/20 have closing odds."""
+    """Insert or update the season's odds. Only seasons from 2019/20 have closing odds."""
     df = df.dropna(subset=["AvgCH"]).copy()
     if df.empty:
         return
@@ -124,7 +132,13 @@ def load_odds(conn, df, team_ids):
             match_id, avg_home, avg_draw, avg_away, close_home,
             close_draw, close_away)
         VALUES (%s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (match_id) DO NOTHING
+        ON CONFLICT (match_id) DO UPDATE SET
+            avg_home = EXCLUDED.avg_home,
+            avg_draw = EXCLUDED.avg_draw,
+            avg_away = EXCLUDED.avg_away,
+            close_home = EXCLUDED.close_home,
+            close_draw = EXCLUDED.close_draw,
+            close_away = EXCLUDED.close_away
     """
 
     with conn.cursor() as cur:
