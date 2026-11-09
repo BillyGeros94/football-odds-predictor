@@ -16,6 +16,18 @@ from src.db import read_sql
 from src.features import load_features
 
 
+def remove_margin(odds):
+    """Turn decimal odds (one column per outcome) into probabilities that sum to 1.
+
+    1 / odds adds up to more than 1 because of the bookmaker's margin;
+    dividing each row by its total removes it.
+    """
+    implied = 1 / odds
+    probs = implied.div(implied.sum(axis=1), axis=0)
+
+    return probs
+
+
 def market_probs():
     """Turn closing odds into probabilities, in the same format as the model predictions."""
     query = """
@@ -28,10 +40,8 @@ def market_probs():
     cols = ["close_away", "close_draw", "close_home"]
     odds[cols] = odds[cols].astype(float)
 
-    # 1 / odds adds up to about 1.05 because of the bookmaker's margin.
-    # Dividing each row by its total removes the margin, so the three add up to 1
-    implied = 1 / odds[cols]
-    probs = implied.div(implied.sum(axis=1), axis=0)
+    # Remove the bookmaker's margin
+    probs = remove_margin(odds[cols])
 
     return pd.DataFrame({
         "model": "market",
