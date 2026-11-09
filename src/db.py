@@ -17,7 +17,7 @@ load_dotenv()   # reads .env if it exists; does nothing in GitHub Actions
 url = os.environ["DATABASE_URL"]
 
 # Order matters: the views read the tables in schema.sql
-SQL_FILES = ["schema.sql", "features.sql", "team_current.sql", "live_record.sql"]
+SQL_FILES = ["schema.sql", "features.sql", "team_current.sql", "live_record.sql", "season_simulations.sql"]
 
 
 def get_connection():

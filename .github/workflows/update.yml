@@ -64,3 +64,6 @@ jobs:
       # Last, so a scoring problem can never stop predictions being published
       - name: Score live predictions
         run: python -m src.live_score
+
+      - name: Simulate the rest of the season
+        run: python -m src.simulate

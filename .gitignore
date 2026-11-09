@@ -3,3 +3,4 @@
 data/raw/
 __pycache__/
 data/fixtures/
+.streamlit/secrets.toml
