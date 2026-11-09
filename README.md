@@ -3,7 +3,9 @@
 Win, draw and loss probabilities and fair odds for Premier League and Championship
 matches, tested against bookmakers' closing odds and published automatically twice a week.
 
-**Python · PostgreSQL · SQL window functions · scikit-learn · GitHub Actions**
+**[Open the live app](https://football-odds-predictor-billygeros.streamlit.app/)**: upcoming predictions, the live record, season chances, team ratings and model performance.
+
+**Python · PostgreSQL · SQL window functions · scikit-learn · Streamlit · GitHub Actions**
 
 ## Results
 
@@ -110,12 +112,13 @@ Each step was measured on the tuning seasons (log loss, lower is better):
 ## Project structure
 
 ```text
-├── .github/workflows/update.yml   Monday and Thursday: download, load, rate, predict, publish, score
+├── .github/workflows/update.yml   Monday and Thursday: download, load, rate, predict, publish, score, simulate
 ├── sql/
 │   ├── schema.sql                 tables: teams, matches, odds, elo_ratings, predictions
 │   ├── features.sql               match_features view: Elo + previous-5-match averages
 │   ├── team_current.sql           team_current view: each team's form right now
-│   └── live_record.sql            live_record view: predictions next to results and odds
+│   ├── live_record.sql            live_record view: predictions next to results and odds
+│   └── season_simulations.sql     each simulation run's chances for every team
 ├── src/
 │   ├── download.py                current season and fixtures
 │   ├── ingest.py                  CSV files → database
@@ -127,7 +130,9 @@ Each step was measured on the tuning seasons (log loss, lower is better):
 │   ├── tune.py, tune_boosting.py, feature_test.py, calibration.py   the tuning experiments
 │   ├── final_test.py              the one-time final test
 │   ├── predict.py                 predictions for upcoming fixtures
-│   └── live_score.py              the live record
+│   ├── live_score.py              the live record
+│   └── simulate.py                season simulation: title, promotion and relegation chances
+├── app/                           Streamlit app (5 pages); run with: streamlit run app/streamlit_app.py
 ├── results/                       final metrics and calibration charts
 ├── predictions/                   every published prediction, committed by the workflow
 └── tests/
