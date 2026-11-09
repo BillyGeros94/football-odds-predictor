@@ -19,8 +19,8 @@ if isinstance(live, dict):
     scores = live["scores"].set_index("model")["log_loss"]
     cols[1].metric("Live log loss", f"{scores['average']:.4f}", help="Lower is better")
     gap = scores["average"] - scores["market pre-match"]
-    cols[2].metric("Gap to pre-match odds", f"{gap:+.4f}", delta=f"{-gap:+.4f}",
-                   help="Positive means the market was more accurate")
+    cols[2].metric("Gap to pre-match odds", f"{gap:+.4f}",
+                   help="Model minus market log loss: positive means the market was more accurate")
     cols[3].metric("Matches scored", len(live["matches"]))
 else:
     cols[1].metric("Live log loss", "—", help="Appears once predicted matches are played")
@@ -58,8 +58,8 @@ st.dataframe(
     },
 )
 made = matches["created_at"].max()
-st.caption(f"Predictions made {made:%d %b %Y, %H:%M} UTC, before kick-off. "
-           "Every run is also committed to the repository's predictions/ folder.")
+st.caption(f"Latest predictions made {made:%d %b %Y, %H:%M} UTC; every prediction is made at "
+           "least 2 hours before kick-off and committed to the repository's predictions/ folder.")
 
 # ---- Why this prediction ----
 st.subheader("Why this prediction?")

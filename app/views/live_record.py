@@ -12,9 +12,6 @@ st.caption("Every prediction is saved before kick-off and published to the repos
            "pre-match odds and its closing odds at kick-off. Lower log loss is better.")
 
 live = data.live()
-if live == "missing":
-    st.warning("live_scores() was not found in src/live_score.py.")
-    st.stop()
 if live is None:
     st.info("Tracking started in November 2026. Results appear here once the first predicted "
             "matches have been played.")

@@ -22,6 +22,7 @@ if "DATABASE_URL" not in os.environ and not (ROOT / ".env").exists():
 from src.db import get_connection                       # noqa: E402
 from src.evaluate import remove_margin                  # noqa: E402
 from src.features import load_features                  # noqa: E402
+from src.live_score import live_scores                   # noqa: E402
 from src.models import LOGISTIC_FEATURES, make_logistic  # noqa: E402
 from src.predict import build_features                  # noqa: E402
 
@@ -136,13 +137,8 @@ def per_match_loss(probs, result):
 def live():
     """The live record from src/live_score.py, with every source's probabilities side by side.
 
-    Returns None while nothing has been scored, or "missing" if live_scores() does not exist yet.
+    Returns None while nothing has been scored.
     """
-    try:
-        from src.live_score import live_scores
-    except ImportError:
-        return "missing"
-
     record = live_scores()
     if record is None:
         return None

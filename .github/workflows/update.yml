@@ -5,7 +5,8 @@ on:
     # Monday: weekend results in, midweek fixtures out
     # Thursday: midweek results in, weekend fixtures out (Friday night games included)
     # GitHub's schedule is best effort and can skip a run, so each day has a second,
-    # later run as a backup. Running twice is harmless: nothing already saved changes.
+    # later run as a backup. Running twice is harmless: saved predictions never change,
+    # and the season simulation is skipped when no new results have arrived.
     # 06:00 and 14:00 UTC are 08:00 and 16:00 in Greece (an hour earlier in summer)
     - cron: "0 6 * * 1,4"
     - cron: "0 14 * * 1,4"
@@ -37,9 +38,6 @@ jobs:
       - name: Install packages
         run: pip install -r requirements.txt
 
-      - name: Run tests
-        run: python -m pytest
-
       - name: Download current season and fixtures
         run: python -m src.download
 
@@ -48,6 +46,13 @@ jobs:
 
       - name: Recalculate Elo
         run: python -m src.elo
+
+      # After loading and rating, before predicting: the leakage tests compare the feature
+      # view with every stored match, so they need Elo rebuilt for the newest matches.
+      # Running them earlier would let one half-finished run block every later run;
+      # here a failure still stops bad predictions, and the next run can repair itself.
+      - name: Run tests
+        run: python -m pytest
 
       - name: Predict upcoming fixtures
         run: python -m src.predict

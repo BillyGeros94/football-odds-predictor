@@ -11,7 +11,8 @@ Assumptions, also stated in the app:
 - ties on points are broken by current goal difference, then at random
 - points deductions are not included
 
-Run (saves one row per team to season_simulations):
+Run (saves one row per team to season_simulations; skipped when no new results
+have arrived since the last simulation):
     python -m src.simulate
 """
 import numpy as np
@@ -31,6 +32,25 @@ def current_season():
     if not str(season).isdigit():   # it goes into SQL below, so make sure it is a season code
         raise ValueError(f"Unexpected season code: {season}")
     return season
+
+
+def already_simulated(season, matches_played):
+    """True if the latest simulation was for this season with exactly these matches played.
+
+    Each run of the workflow (and its backup run) would otherwise add a near-identical
+    simulation whenever no new results have arrived, differing only by random noise.
+    """
+    try:
+        last = read_sql("""
+            SELECT season, SUM(played) AS team_games FROM season_simulations
+            WHERE run_at = (SELECT MAX(run_at) FROM season_simulations)
+            GROUP BY season
+        """)
+    except Exception:   # the table does not exist before the first simulation
+        return False
+    # Every match counts once for each of its two teams
+    return (not last.empty and last.season[0] == season
+            and int(last.team_games[0]) == 2 * matches_played)
 
 
 def league_table(played):
@@ -102,6 +122,9 @@ def simulate():
         SELECT league, home_team_id, away_team_id, home_goals, away_goals, result
         FROM matches WHERE season = '{season}'
     """)
+    if already_simulated(season, len(played_all)):
+        print("No new results since the last simulation, skipping")
+        return pd.DataFrame()
     names = dict(read_sql("SELECT team_id, name FROM teams").values.tolist())
 
     # Train once, as predict.py does: on every finished match

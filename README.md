@@ -12,7 +12,8 @@ matches, tested against bookmakers' closing odds and published automatically twi
 The models were tested **walk-forward**: each season is predicted using only the seasons
 before it. Every choice (Elo settings, features, model settings) was made on 2019/20–2021/22.
 The final test below was then run **once** on matches never used for any decision:
-2022/23 to 2026/27 so far, **3,986 matches**.
+2022/23 to 2026/27 up to 8 November 2026, **3,986 matches**. These numbers are fixed:
+the test is not rerun as new matches are played.
 
 | Model | Log loss | Brier score | Calibration error |
 |---|---:|---:|---:|
@@ -41,7 +42,7 @@ Full numbers, including each season, are in [`results/metrics.json`](results/met
 
 Since November 2026 a GitHub Actions workflow predicts upcoming matches every Monday and
 Thursday. Each run's predictions are committed to [`predictions/`](predictions/), so the
-public git history proves they were made before kick-off. Once the matches are played,
+public git history records when each was made, before kick-off. Once the matches are played,
 [`src/live_score.py`](src/live_score.py) scores them against two benchmarks on the same games:
 
 - **pre-match odds**: the market average recorded before the matches, closer to when the model predicts
@@ -64,8 +65,9 @@ flowchart LR
 ```
 
 1. **Data.** Results, shots on target and market odds for every Premier League and
-   Championship match since 2015/16 (10,510 matches, 59 teams), loaded into PostgreSQL.
-   Reloading is safe: `ON CONFLICT DO NOTHING` skips rows already stored.
+   Championship match since 2015/16 (over 10,500 matches, 59 teams), loaded into PostgreSQL.
+   Reloading is safe: new matches are added, and stored ones are updated in place
+   (`ON CONFLICT DO UPDATE`), so a result the source corrects later is picked up.
 2. **Elo ratings.** One strength number per team, updated after every match. Both leagues
    share one scale, so promoted and relegated teams carry their rating with them. Two
    additions, both tuned: bigger wins move ratings more, and each summer every rating moves

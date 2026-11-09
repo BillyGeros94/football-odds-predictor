@@ -29,7 +29,7 @@ cols[2].metric("Calibration error", f"{overall.loc['average', 'calibration_error
 cols[3].metric("Test matches", f"{metrics['matches']:,}")
 
 # ---- Final test table ----
-st.subheader("Final test, 2022/23 to 2026/27 so far")
+st.subheader("Final test, 2022/23 to 2026/27 (up to 8 Nov 2026)")
 table = overall.reset_index()
 table["model"] = table["model"].map(NAMES)
 table.loc[table["model"].str.startswith("Baseline"), "calibration_error"] = None
@@ -69,7 +69,7 @@ with left:
         .properties(height=320)
     )
     st.altair_chart(chart, width="stretch")
-    st.caption("2026/27 is only the matches played so far, so it is the noisiest bar.")
+    st.caption("2026/27 is only the matches played up to 8 Nov 2026, so it is the noisiest bar.")
 
 with right:
     st.subheader("Calibration")
