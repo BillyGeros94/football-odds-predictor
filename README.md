@@ -99,6 +99,10 @@ Each step was measured on the tuning seasons (log loss, lower is better):
 - **Boosting needed to be kept simple.** Untuned, it was worse than logistic regression;
   heavily restrained, it matched it.
 
+The data behind these choices, including home advantage disappearing in the Premier League
+without crowds in 2020/21 and how well calibrated the market is, is explored in
+[notebooks/exploration.ipynb](notebooks/exploration.ipynb).
+
 ## Limitations
 
 - **The live comparison favours the market.** A prediction can be made up to four days
@@ -137,6 +141,7 @@ Each step was measured on the tuning seasons (log loss, lower is better):
 │   ├── live_score.py              the live record
 │   └── simulate.py                season simulation: title, promotion and relegation chances
 ├── app/                           Streamlit app (5 pages); run with: streamlit run app/streamlit_app.py
+├── notebooks/exploration.ipynb    the data behind each modelling choice: home advantage, Elo, shots on target, the market
 ├── results/                       final metrics and calibration charts
 ├── predictions/                   every published prediction, committed by the workflow
 └── tests/
