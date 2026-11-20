@@ -4,16 +4,16 @@ import pandas as pd
 import streamlit as st
 
 import data
+import ui
 from style import COLOURS, LEAGUES
 
 NAMES = {"market": "Bookmakers' closing odds", "logistic": "Logistic regression",
          "average": "Average of both (main model)", "boosting": "Gradient boosting",
          "baseline": "Baseline (historical rates)"}
 
-st.title("Model performance")
-st.caption("Tested walk-forward: each season is predicted using only the seasons before it. Every "
-           "choice was made on 2019/20–2021/22; the final test was then run once on matches never "
-           "used for any decision.")
+ui.page_head("Model performance · Walk-forward test", "Tested once,", "on matches it never saw.",
+             "Each season is predicted using only the seasons before it. Every modelling choice was made on "
+             "2019/20–2021/22; the final test was then run once, on matches never used for any decision.")
 
 metrics = data.final_metrics()
 overall = pd.DataFrame(metrics["overall"]).set_index("model")
@@ -69,7 +69,7 @@ with left:
         .properties(height=320)
     )
     st.altair_chart(chart, width="stretch")
-    st.caption("2026/27 is only the matches played up to 8 Nov 2026, so it is the noisiest bar.")
+    st.caption("2026/27 covers matches up to 8 Nov 2026 only, so it is the least settled bar.")
 
 with right:
     st.subheader("Calibration")
@@ -119,6 +119,6 @@ with st.expander("Limitations"):
         "- Predictions are saved only up to 2 hours before kick-off; games kicking off sooner "
         "than that when a run happens are not predicted.\n"
         "- No line-ups, injuries or xG: the model only knows results, shots on target and ratings.\n"
-        "- Data from [football-data.co.uk](https://www.football-data.co.uk), not included in the "
-        "repository. A personal, non-commercial project."
+        "- Data from [football-data.co.uk](https://www.football-data.co.uk), used under its terms and not "
+        "redistributed in the repository."
     )

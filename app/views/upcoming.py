@@ -3,11 +3,13 @@ import altair as alt
 import streamlit as st
 
 import data
+import ui
 from style import COLOURS, LEAGUES, league_filter, odds, percent
 
-st.title("Upcoming matches")
-st.caption("Win, draw and loss probabilities from an average of logistic regression and "
-           "gradient boosting. Fair odds are 1 / probability, with no bookmaker margin.")
+ui.page_head("Premier League · Championship · Next fixtures", "Every upcoming match,", "priced by the model.",
+             "Win, draw and loss probabilities from an average of logistic regression and gradient boosting, "
+             "made within hours of the fixtures being published. Fair odds are 1 / probability, with no bookmaker "
+             "margin.")
 
 matches = data.upcoming()
 live = data.live()
@@ -28,7 +30,7 @@ else:
     cols[3].metric("Matches scored", 0)
 
 if matches.empty:
-    st.info("No upcoming predictions right now. New ones are made within hours of the fixtures being published.")
+    st.info("No fixtures are scheduled yet. Predictions are published within hours of the next fixtures.")
     st.stop()
 
 # ---- Predictions table ----
@@ -58,8 +60,8 @@ st.dataframe(
     },
 )
 made = matches["created_at"].max()
-st.caption(f"Latest predictions made {made:%d %b %Y, %H:%M} UTC; every prediction is made at "
-           "least 2 hours before kick-off and committed to the repository's predictions/ folder.")
+st.caption(f"Latest predictions made {made:%d %b %Y, %H:%M} UTC. Every prediction is made at least 2 hours "
+           "before kick-off and published with a timestamp in the repository's predictions/ folder.")
 
 # ---- Why this prediction ----
 st.subheader("Why this prediction?")
@@ -92,4 +94,4 @@ main = drivers.loc[drivers["push"].abs().idxmax()]
 side = match["home"] if main["push"] > 0 else match["away"]
 st.caption(f"The biggest factor is **{main['input'].lower()}**, which favours **{side}**. "
            "Bars show each input's push on the odds of a home win against an away win, from the "
-           "logistic regression half of the model; the gradient boosting half is not shown.")
+           "logistic regression half of the model.")

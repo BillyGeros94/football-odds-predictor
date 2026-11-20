@@ -4,17 +4,18 @@ import pandas as pd
 import streamlit as st
 
 import data
+import ui
 from style import COLOURS
 
-st.title("Live record")
-st.caption("Every prediction is saved before kick-off and published to the repository. Once the "
-           "match is played it is scored against two benchmarks on the same games: the market's "
-           "pre-match odds and its closing odds at kick-off. Lower log loss is better.")
+ui.page_head("Live record · Since November 2026", "Predictions made before kick-off,",
+             "scored against the market.",
+             "Every prediction is published before kick-off. Once the match is played it is scored against two "
+             "benchmarks on the same games: the market's pre-match odds and its closing odds at kick-off. Lower log "
+             "loss is better.")
 
 live = data.live()
 if live is None:
-    st.info("Tracking started in November 2026. Results appear here once the first predicted "
-            "matches have been played.")
+    st.info("Tracking started in November 2026. Results appear once the first predicted matches are played.")
     st.stop()
 
 matches = live["matches"]
@@ -52,7 +53,7 @@ chart = (
     .properties(height=320)
 )
 st.altair_chart(chart, width="stretch")
-st.caption("Early values move a lot: log loss needs a few hundred matches to settle.")
+st.caption("Log loss settles over a few hundred matches; early values move more.")
 
 # ---- Where the model and the market disagreed ----
 st.subheader("Where the model and the market disagreed")

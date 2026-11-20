@@ -3,19 +3,21 @@ import altair as alt
 import streamlit as st
 
 import data
-from style import LEAGUES, percent
+import ui
+from style import COLOURS, LEAGUES, percent
 from src.simulate import N_SIMS
 
-st.title("Season predictions")
-st.caption(f"The remaining fixtures are played out {N_SIMS:,} times with the model's match "
-           "probabilities, and each team's finishing positions are counted.")
+ui.page_head(f"Season predictions · {N_SIMS:,} simulations", "The rest of the season,",
+             f"played out {N_SIMS:,} times.",
+             "Each remaining fixture is played with the model's match probabilities, and every team's finishing "
+             "positions are counted: title, top four, promotion, play-offs and relegation.")
 
 try:
     latest = data.simulation_latest()
 except Exception:   # the table does not exist until the first simulation run
     latest = None
 if latest is None or latest.empty:
-    st.info("No simulation yet. It runs with the next update after new results.")
+    st.info("The first simulation runs with the next update after new results.")
     st.stop()
 
 run_at = latest["run_at"].max()
@@ -73,7 +75,9 @@ chart = (
     .encode(
         x=alt.X("run_at:T", title=None),
         y=alt.Y("chance:Q", title="Chance", axis=alt.Axis(format="%"), scale=alt.Scale(domain=[0, 1])),
-        color=alt.Color("outcome:N", title=None),
+        color=alt.Color("outcome:N", title=None,
+                        scale=alt.Scale(range=[COLOURS["Model"], COLOURS["Market pre-match"],
+                                               COLOURS["Market closing"], COLOURS["Premier League"]])),
         tooltip=["run_at:T", "outcome:N", alt.Tooltip("chance:Q", format=".0%")],
     )
     .properties(height=300)

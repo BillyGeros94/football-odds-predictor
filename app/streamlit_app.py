@@ -8,7 +8,8 @@ from datetime import date
 
 import streamlit as st
 
-st.set_page_config(page_title="Football Odds Predictor", page_icon="⚽", layout="wide")
+st.set_page_config(page_title="Football Odds Predictor · Premier League and Championship probabilities",
+                   page_icon=":material/sports_soccer:", layout="wide")
 
 # -------------------------
 # Christmas theme: blinking lights along the top and gentle snowfall, on its own from
@@ -121,16 +122,46 @@ pages = [
     st.Page("views/performance.py", title="Model performance", icon=":material/analytics:"),
 ]
 
-import data  # noqa: E402  (after set_page_config)
+import data   # noqa: E402  (after set_page_config)
+import style  # noqa: E402
+import ui     # noqa: E402
 
-with st.sidebar:
-    st.caption("Premier League and Championship win, draw and loss probabilities, "
-               "updated within hours of new results and fixtures.")
-    last_simulation, latest_result = data.freshness()
-    st.caption(f"Results included up to: {latest_result:%a %d %b %Y}")
-    if last_simulation is not None:
-        # Simulations only run when new results arrive, so this is not the last workflow run
-        st.caption(f"Season simulation: {last_simulation:%a %d %b %Y}")
-    st.caption("[Code and method on GitHub](https://github.com/BillyGeros94/football-odds-predictor)")
+BRAND = "Football Odds Predictor"
+GLYPH = ('<rect class="s" x="5" y="7.5" width="16" height="11" rx="1.5" stroke-width="1.6"/>'
+         '<path class="s" d="M13 7.5v11" stroke-width="1.6"/><circle class="s" cx="13" cy="13" r="2.4" stroke-width="1.6"/>')
+EXTRA_CSS = """
+.hero.page { margin: 3.5vh 0 1.8rem; } .hero.page .title { font-size: 2.45rem; }
+.stApp h3 { font-size: 1.12rem; font-weight: 600; letter-spacing: -.02em; }
+[data-testid="stMetric"] { border-top: 1px solid var(--line); padding-top: .75rem; }
+[data-testid="stMetricLabel"] p { font-family: var(--mono); font-size: .7rem; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--muted); }
+[data-testid="stMetricValue"] { font-size: 2rem; font-weight: 600; letter-spacing: -.035em; }
+.st-key-nav { justify-content: flex-end; gap: .15rem; flex-wrap: nowrap; overflow-x: auto; }
+.st-key-nav [data-testid="stPageLink"] a { padding: .3rem .7rem; border-radius: 999px; background: transparent; }
+.st-key-nav [data-testid="stPageLink"] a p { font-size: .84rem; color: var(--muted); white-space: nowrap; }
+.st-key-nav [data-testid="stPageLink"] a:hover p { color: var(--ink); }
+.st-key-nav [data-testid="stPageLink"] a[aria-current="page"], .st-key-nav [data-testid="stPageLink"] a.active
+  { background: var(--soft); }
+.st-key-nav [data-testid="stPageLink"] a[aria-current="page"] p { color: var(--ink); }
+[data-testid="stSegmentedControl"] button { border-radius: 999px !important; }
+.foot a { color: inherit; }
+@media (max-width: 640px) { .hero.page .title { font-size: 1.9rem; }
+  .st-key-topbar [data-testid="stHorizontalBlock"] { flex-wrap: wrap; } }
+"""
 
-st.navigation(pages).run()
+nav = st.navigation(pages, position="hidden")
+style.set_theme(ui.mode())
+ui.apply(width="1180px", extra=EXTRA_CSS)
+right = ui.top_bar(BRAND, GLYPH, widths=(2.2, 5))
+with right.container(key="nav", horizontal=True):
+    for page in pages:
+        st.page_link(page, label=page.title)
+
+nav.run()
+
+last_simulation, latest_result = data.freshness()
+# Simulations only run when new results arrive, so their date is not the last workflow run
+ui.foot(f"Results to {latest_result:%a %d %b %Y}"
+        + (f" · Season simulation {last_simulation:%a %d %b %Y}" if last_simulation is not None else "")
+        + " · Data: football-data.co.uk · "
+        '<a href="https://github.com/BillyGeros94/football-odds-predictor">Method and code ↗</a>')

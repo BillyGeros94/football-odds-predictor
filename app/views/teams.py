@@ -3,11 +3,12 @@ import altair as alt
 import streamlit as st
 
 import data
+import ui
 from style import COLOURS, LEAGUES, league_filter
 
-st.title("Teams")
-st.caption("Elo is one strength number per team, updated after every match. Both leagues share "
-           "one scale, so teams keep their rating when promoted or relegated.")
+ui.page_head("Teams · Elo ratings", "Every team's strength,", "in one number.",
+             "Elo is a single strength rating per team, updated after every match. Both leagues share one scale, "
+             "so teams keep their rating when promoted or relegated.")
 
 ratings = data.team_ratings()
 upcoming = data.upcoming()
@@ -60,7 +61,7 @@ line = (
                  "scored:Q", "conceded:Q", alt.Tooltip("elo_after:Q", title="Elo", format=".0f")],
     )
 )
-starts = alt.Chart(season_starts).mark_rule(color="#cbd5e1", strokeDash=[4, 4]).encode(x="match_date:T")
+starts = alt.Chart(season_starts).mark_rule(color=COLOURS["Rule"], strokeDash=[4, 4]).encode(x="match_date:T")
 st.altair_chart((starts + line).properties(height=320), width="stretch")
 st.caption("Dashed lines mark the start of each season, when ratings are pulled 40% of the way "
            "back to the league average.")
