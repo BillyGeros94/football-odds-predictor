@@ -1,7 +1,8 @@
 # Football Odds Predictor
 
 Win, draw and loss probabilities and fair odds for Premier League and Championship
-matches, tested against bookmakers' closing odds and published automatically twice a week.
+matches, tested against bookmakers' closing odds and published automatically as soon as
+new fixtures appear.
 
 **[Open the live app](https://football-odds-predictor-billygeros.streamlit.app/)**: upcoming predictions, the live record, season chances, team ratings and model performance.
 
@@ -40,9 +41,11 @@ Full numbers, including each season, are in [`results/metrics.json`](results/met
 
 ## Live record
 
-Since November 2026 a GitHub Actions workflow predicts upcoming matches every Monday and
-Thursday. Each run's predictions are committed to [`predictions/`](predictions/), so the
-public git history records when each was made, before kick-off. Once the matches are played,
+Since November 2026 a GitHub Actions workflow predicts upcoming matches. Every hour it asks
+football-data whether the results or fixtures files have changed (headers only), and runs the
+full update only when they have, so new fixtures are predicted within hours of appearing.
+Each run's predictions are committed to [`predictions/`](predictions/), so the public git
+history records when each was made, before kick-off. Once the matches are played,
 [`src/live_score.py`](src/live_score.py) scores them against two benchmarks on the same games:
 
 - **pre-match odds**: the market average recorded before the matches, closer to when the model predicts
@@ -120,7 +123,7 @@ without crowds in 2020/21 and how well calibrated the market is, is explored in
 ## Project structure
 
 ```text
-├── .github/workflows/update.yml   Monday and Thursday: download, load, rate, predict, publish, score, simulate
+├── .github/workflows/update.yml   hourly check; on new data: download, load, rate, predict, publish, score, simulate
 ├── sql/
 │   ├── schema.sql                 tables: teams, matches, odds, elo_ratings, predictions
 │   ├── features.sql               match_features view: Elo + previous-5-match averages
@@ -128,6 +131,7 @@ without crowds in 2020/21 and how well calibrated the market is, is explored in
 │   ├── live_record.sql            live_record view: predictions next to results and odds
 │   └── season_simulations.sql     each simulation run's chances for every team
 ├── src/
+│   ├── check_updates.py           has football-data changed since the last update?
 │   ├── download.py                current season and fixtures
 │   ├── ingest.py                  CSV files → database
 │   ├── elo.py                     Elo ratings

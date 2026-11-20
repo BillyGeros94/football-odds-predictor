@@ -125,7 +125,7 @@ import data  # noqa: E402  (after set_page_config)
 
 with st.sidebar:
     st.caption("Premier League and Championship win, draw and loss probabilities, "
-               "updated every Monday and Thursday.")
+               "updated within hours of new results and fixtures.")
     last_simulation, latest_result = data.freshness()
     st.caption(f"Results included up to: {latest_result:%a %d %b %Y}")
     if last_simulation is not None:

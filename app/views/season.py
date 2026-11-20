@@ -15,7 +15,7 @@ try:
 except Exception:   # the table does not exist until the first simulation run
     latest = None
 if latest is None or latest.empty:
-    st.info("No simulation yet. It runs with every Monday and Thursday update.")
+    st.info("No simulation yet. It runs with the next update after new results.")
     st.stop()
 
 run_at = latest["run_at"].max()

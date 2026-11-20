@@ -1,9 +1,10 @@
 """Download the current season's results and the upcoming fixtures.
 
 Fetches three small CSV files from football-data.co.uk: the Premier League and
-Championship files for the current season, and fixtures.csv. It is meant to run
-twice a week (see .github/workflows/update.yml), not more: the site is free and
-run by one person.
+Championship files for the current season, and fixtures.csv. It runs only when
+src.check_updates finds that one of these files has changed (see
+.github/workflows/update.yml), never on a fixed timer: the site is free and run
+by one person.
 """
 import urllib.error
 import urllib.request

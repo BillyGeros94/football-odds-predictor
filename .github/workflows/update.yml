@@ -2,17 +2,15 @@ name: Update data and predictions
 
 on:
   schedule:
-    # Monday: weekend results in, midweek fixtures out
-    # Thursday: midweek results in, weekend fixtures out (Friday night games included)
-    # GitHub's schedule is best effort and can skip a run, so each day has a second,
-    # later run as a backup. Running twice is harmless: saved predictions never change,
-    # and the season simulation is skipped when no new results have arrived.
-    # 06:00 and 14:00 UTC are 08:00 and 16:00 in Greece (an hour earlier in summer)
-    - cron: "0 6 * * 1,4"
-    - cron: "0 14 * * 1,4"
-  workflow_dispatch:   # adds a "Run workflow" button for manual runs
+    # Check every hour. football-data has no fixed update time (weekend fixtures usually
+    # appear on Friday afternoon) and GitHub can start scheduled runs hours late or skip
+    # them, so checking often is the only way not to miss a round. Most checks find
+    # nothing new and stop after a few seconds; see the check job below.
+    - cron: "17 * * * *"
+  workflow_dispatch:   # adds a "Run workflow" button; a manual run always does the full update
 
 permissions:
+  actions: write    # for the "keep this schedule enabled" step
   contents: write   # lets the workflow commit the predictions/ folder
 
 # Never let two runs overlap: a second one waits for the first to finish
@@ -21,7 +19,48 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Asks football-data for the version tags of the three files (headers only, no data)
+  # and looks for a cache entry saved under that fingerprint by an earlier successful
+  # update. Found means nothing has changed since, so the update job is skipped.
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      fingerprint: ${{ steps.versions.outputs.fingerprint }}
+      run-update: ${{ github.event_name == 'workflow_dispatch' || steps.versions.outputs.fingerprint == '' || steps.done.outputs.cache-hit != 'true' }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      # Standard library only, so no packages to install
+      - name: Read the files' versions
+        id: versions
+        run: python -m src.check_updates
+
+      - name: Look for an update already done for these versions
+        id: done
+        if: steps.versions.outputs.fingerprint != ''
+        uses: actions/cache/restore@v6
+        with:
+          path: .update-done
+          key: football-data-${{ steps.versions.outputs.fingerprint }}
+          lookup-only: true
+
+      # GitHub switches off scheduled workflows after 60 days without repository
+      # activity, which would happen every summer with no matches to predict.
+      # Re-enabling this one through the API keeps its schedule running.
+      - name: Keep this schedule enabled
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/update.yml/enable"
+
   update:
+    needs: check
+    if: needs.check.outputs.run-update == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -41,7 +80,7 @@ jobs:
       # Tests that need no database run first, so a broken change to the code is
       # caught before anything touches the stored data
       - name: Run code tests
-        run: python -m pytest tests/test_backtest.py tests/test_evaluate.py tests/test_download.py tests/test_elo.py
+        run: python -m pytest tests/test_backtest.py tests/test_evaluate.py tests/test_download.py tests/test_check_updates.py tests/test_elo.py
 
       - name: Download current season and fixtures
         run: python -m src.download
@@ -85,21 +124,27 @@ jobs:
             git push
           fi
 
-      # GitHub switches off scheduled runs after 60 days without a commit, which would
-      # happen every summer with no matches to predict. An empty commit keeps it on.
-      - name: Keep the schedule active
-        run: |
-          days_since=$(( ( $(date +%s) - $(git log -1 --format=%ct) ) / 86400 ))
-          echo "Last commit was $days_since days ago"
-          if [ "$days_since" -ge 45 ]; then
-            git commit --allow-empty -m "Keep the scheduled workflow active"
-            git pull --rebase
-            git push
-          fi
-
       # Last, so a scoring problem can never stop predictions being published
       - name: Score live predictions
         run: python -m src.live_score
 
       - name: Simulate the rest of the season
         run: python -m src.simulate
+
+      # Last, and only reached when every step above succeeded: remember these versions
+      # as done, so the hourly checks skip them. A failed run saves nothing, so the next
+      # check tries again. Cache entries unused for 7 days expire; that only means one
+      # extra full run, which changes nothing (predictions are write-once, repeated
+      # simulations are skipped).
+      - name: Mark these versions as done
+        if: needs.check.outputs.fingerprint != ''
+        run: |
+          mkdir -p .update-done
+          echo "${{ needs.check.outputs.fingerprint }}" > .update-done/fingerprint
+
+      - name: Save the mark
+        if: needs.check.outputs.fingerprint != ''
+        uses: actions/cache/save@v6
+        with:
+          path: .update-done
+          key: football-data-${{ needs.check.outputs.fingerprint }}

@@ -28,7 +28,7 @@ else:
     cols[3].metric("Matches scored", 0)
 
 if matches.empty:
-    st.info("No upcoming predictions right now. New ones are made every Monday and Thursday morning.")
+    st.info("No upcoming predictions right now. New ones are made within hours of the fixtures being published.")
     st.stop()
 
 # ---- Predictions table ----
