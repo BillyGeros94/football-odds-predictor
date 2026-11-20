@@ -144,7 +144,7 @@ without crowds in 2020/21 and how well calibrated the market is, is explored in
 │   ├── predict.py                 predictions for upcoming fixtures
 │   ├── live_score.py              the live record
 │   └── simulate.py                season simulation: title, promotion and relegation chances
-├── app/                           Streamlit app (5 pages); run with: streamlit run app/streamlit_app.py
+├── app/                           Streamlit app (5 pages, look in ui.py); run with: streamlit run app/streamlit_app.py
 ├── notebooks/exploration.ipynb    the data behind each modelling choice: home advantage, Elo, shots on target, the market
 ├── results/                       final metrics and calibration charts
 ├── predictions/                   every published prediction, committed by the workflow
